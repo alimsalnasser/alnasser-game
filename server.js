@@ -47,6 +47,32 @@ function canMove(game, color, x, y) {
   return true;
 }
 
+function opponentOf(color) {
+  return color === "blue" ? "red" : "blue";
+}
+
+function hasAnyMove(game, color) {
+  const p = game.board[color];
+  return [
+    { x: p.x + 1, y: p.y },
+    { x: p.x - 1, y: p.y },
+    { x: p.x, y: p.y + 1 },
+    { x: p.x, y: p.y - 1 }
+  ].some(pos => canMove(game, color, pos.x, pos.y));
+}
+
+function finishTurn(game, color) {
+  if (game.winner) return;
+
+  const next = opponentOf(color);
+  if (!hasAnyMove(game, next)) {
+    game.winner = color;
+    return;
+  }
+
+  game.turn = next;
+}
+
 function send(roomId) {
   io.to(roomId).emit("state", roomState(roomId));
 }
@@ -85,7 +111,7 @@ io.on("connection", socket => {
     game.board[color] = { x, y };
     if (color === "blue" && y === 8) game.winner = "blue";
     if (color === "red" && y === 0) game.winner = "red";
-    game.turn = color === "blue" ? "red" : "blue";
+    finishTurn(game, color);
     send(roomId);
   });
 
@@ -102,7 +128,7 @@ io.on("connection", socket => {
     if (isBlocked(game, x1,y1,x2,y2)) return;
 
     game.board.walls.push({ x1,y1,x2,y2,color });
-    game.turn = color === "blue" ? "red" : "blue";
+    finishTurn(game, color);
     send(roomId);
   });
 
