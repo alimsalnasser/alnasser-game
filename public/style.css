@@ -68,6 +68,25 @@ button.active{background:#f59e0b;color:#111;font-weight:bold}
   background:white;
   border:1px solid var(--grid);
   position:relative;
+  z-index:1;
+}
+.goal-line{
+  position:absolute;
+  left:16px;
+  right:16px;
+  height:6px;
+  border-radius:999px;
+  z-index:3;
+  pointer-events:none;
+  box-shadow:0 2px 8px #0003;
+}
+.red-goal{
+  top:4px;
+  background:var(--red);
+}
+.blue-goal{
+  bottom:4px;
+  background:var(--blue);
 }
 .pawn{
   width:54%;

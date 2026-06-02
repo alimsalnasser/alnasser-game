@@ -11,6 +11,7 @@ const wallModeBtn = document.getElementById("wallMode");
 let myColor = null;
 let state = null;
 let mode = "move";
+let announcedWinner = null;
 
 const urlRoom = new URLSearchParams(location.search).get("room");
 if (urlRoom) roomInput.value = urlRoom;
@@ -67,14 +68,17 @@ function render(){
 
   if(!state) return;
 
+  addGoalMarkers();
   addWallSlots();
   addPawn(state.board.blue, "blue");
   addPawn(state.board.red, "red");
   state.board.walls.forEach(addWall);
 
   if(state.winner){
+    announceWinner(state.winner);
     statusEl.textContent = "الفائز: " + (state.winner === "blue" ? "الأزرق" : "الأحمر");
   }else{
+    announcedWinner = null;
     statusEl.textContent = "دور: " + (state.turn === "blue" ? "الأزرق" : "الأحمر") + " | أنت: " + label(myColor);
   }
 }
@@ -91,6 +95,21 @@ function addPawn(p, color){
   const pawn = document.createElement("div");
   pawn.className = "pawn " + color;
   cell.appendChild(pawn);
+}
+
+function addGoalMarkers(){
+  const redGoal = document.createElement("div");
+  redGoal.className = "goal-line red-goal";
+  const blueGoal = document.createElement("div");
+  blueGoal.className = "goal-line blue-goal";
+  boardEl.appendChild(redGoal);
+  boardEl.appendChild(blueGoal);
+}
+
+function announceWinner(winner){
+  if(announcedWinner === winner) return;
+  announcedWinner = winner;
+  alert("🏆 فوز " + label(winner));
 }
 
 function boardMetrics(){
