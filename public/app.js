@@ -11,16 +11,15 @@ const wallModeBtn = document.getElementById("wallMode");
 let myColor = null;
 let state = null;
 let mode = "move";
-let selectedWallStart = null;
 
 const urlRoom = new URLSearchParams(location.search).get("room");
 if (urlRoom) roomInput.value = urlRoom;
 
 function setMode(m){
   mode = m;
-  selectedWallStart = null;
   moveModeBtn.classList.toggle("active", m === "move");
   wallModeBtn.classList.toggle("active", m === "wall");
+  boardEl.classList.toggle("wall-mode", m === "wall");
 }
 moveModeBtn.onclick = () => setMode("move");
 wallModeBtn.onclick = () => setMode("wall");
@@ -68,6 +67,7 @@ function render(){
 
   if(!state) return;
 
+  addWallSlots();
   addPawn(state.board.blue, "blue");
   addPawn(state.board.red, "red");
   state.board.walls.forEach(addWall);
@@ -93,23 +93,72 @@ function addPawn(p, color){
   cell.appendChild(pawn);
 }
 
-function addWall(w){
+function boardMetrics(){
   const rect = boardEl.getBoundingClientRect();
-  const cellSize = (rect.width - 20 - 8*6) / 9;
-  const gap = 6;
+  const styles = getComputedStyle(boardEl);
+  const padding = parseFloat(styles.paddingLeft) || 10;
+  const gap = parseFloat(styles.gap) || 6;
+  const cellSize = (rect.width - padding * 2 - gap * 8) / 9;
+  return { padding, gap, cellSize };
+}
+
+function addWallSlots(){
+  for(let y=0;y<9;y++){
+    for(let x=0;x<8;x++){
+      addWallSlot(x, y, x + 1, y, "vertical");
+    }
+  }
+
+  for(let y=0;y<8;y++){
+    for(let x=0;x<9;x++){
+      addWallSlot(x, y, x, y + 1, "horizontal");
+    }
+  }
+}
+
+function addWallSlot(x1, y1, x2, y2, orientation){
+  const { padding, gap, cellSize } = boardMetrics();
+  const hit = Math.max(28, gap + 18);
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "wall-slot " + orientation;
+  slot.setAttribute("aria-label", "إضافة حاجز");
+
+  if(orientation === "vertical"){
+    slot.style.left = (padding + (x1 + 1) * cellSize + x1 * gap + gap / 2 - hit / 2) + "px";
+    slot.style.top = (padding + y1 * (cellSize + gap) - 4) + "px";
+    slot.style.width = hit + "px";
+    slot.style.height = (cellSize + 8) + "px";
+  }else{
+    slot.style.left = (padding + x1 * (cellSize + gap) - 4) + "px";
+    slot.style.top = (padding + (y1 + 1) * cellSize + y1 * gap + gap / 2 - hit / 2) + "px";
+    slot.style.width = (cellSize + 8) + "px";
+    slot.style.height = hit + "px";
+  }
+
+  slot.onclick = event => {
+    event.stopPropagation();
+    placeWall(x1, y1, x2, y2);
+  };
+
+  boardEl.appendChild(slot);
+}
+
+function addWall(w){
+  const { padding, gap, cellSize } = boardMetrics();
   const x = Math.min(w.x1,w.x2);
   const y = Math.min(w.y1,w.y2);
   const div = document.createElement("div");
   div.className = "wall " + w.color;
 
   if(w.y1 === w.y2){
-    div.style.left = (10 + (x+1)*cellSize + x*gap + gap/2 - 4) + "px";
-    div.style.top = (10 + y*(cellSize+gap)) + "px";
+    div.style.left = (padding + (x+1)*cellSize + x*gap + gap/2 - 4) + "px";
+    div.style.top = (padding + y*(cellSize+gap)) + "px";
     div.style.width = "8px";
     div.style.height = cellSize + "px";
   }else{
-    div.style.left = (10 + x*(cellSize+gap)) + "px";
-    div.style.top = (10 + (y+1)*cellSize + y*gap + gap/2 - 4) + "px";
+    div.style.left = (padding + x*(cellSize+gap)) + "px";
+    div.style.top = (padding + (y+1)*cellSize + y*gap + gap/2 - 4) + "px";
     div.style.width = cellSize + "px";
     div.style.height = "8px";
   }
@@ -121,21 +170,17 @@ function clickCell(x,y){
 
   if(mode === "move"){
     socket.emit("move", { x, y });
-    return;
   }
+}
 
-  if(!selectedWallStart){
-    selectedWallStart = { x, y };
-    return;
-  }
-
+function placeWall(x1, y1, x2, y2){
+  if(!state || state.turn !== myColor || mode !== "wall") return;
   socket.emit("wall", {
-    x1:selectedWallStart.x,
-    y1:selectedWallStart.y,
+    x1,
+    y1,
     x2:x,
     y2:y
   });
-  selectedWallStart = null;
 }
 
 if ("serviceWorker" in navigator) {

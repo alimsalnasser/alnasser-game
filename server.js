@@ -16,8 +16,8 @@ function newGame() {
     turn: "blue",
     players: {},
     board: {
-      blue: { x: 8, y: 1 },
-      red: { x: 4, y: 6 },
+      blue: { x: 0, y: 0 },
+      red: { x: 8, y: 8 },
       walls: []
     },
     winner: null
